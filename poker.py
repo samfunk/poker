@@ -453,8 +453,3 @@ if __name__ == '__main__':
                                 continue
                             else:
                                 player_list.append(Player(name, stack))
-
-'''def score_hand(self):
-    repls = ('T', '10'), ('J', '11'), ('Q', '12'), ('K', '13'), ('A', '14')
-    clean = reduce(lambda a, kv: a.replace(*kv), repls, self.hand.strip())
-    cards = [(int(card[:-1]), card[-1]) for card in clean.split(' ')]'''
