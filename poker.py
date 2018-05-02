@@ -399,7 +399,7 @@ if __name__ == '__main__':
             leader_list = sorted(zip(name_list, stack_list), key=lambda x: x[1], reverse=True)
             for player in leader_list:
                 print('{}: ${}'.format(player[0], player[1]))
-
+                
         while True:
             # Update name_list to ensure there are no duplicates
             if player_list:
@@ -412,37 +412,29 @@ if __name__ == '__main__':
                 print('Not a valid action! Must be \'add\' or \'start\'')
                 continue
 
-            else:
-                # Start Action
-                if action == 'start':
-                    if len(player_list) < 2:
-                        print('Not enough players to start! Add more players')
-                        continue
-                    else:
-                        # Play the hand
-                        hand = Hand(*player_list)
-                        player_list = hand.play()
-                        # Check to play again
-                        again = str(input('Play Again? [y/n] ')).strip().lower()
-                        if again in ['yes', 'y']:
-                            play_again = True
-                        else:
-                            play_again =  False
-                        break
-                # Add Action
+            # Start Action
+            if action == 'start':
+                if len(player_list) < 2:
+                    print('Not enough players to start! Add more players')
+                    action == 'add'
                 else:
-                    if len(player_list) == 10:
-                        print('Table full! Start the game!')
+                    break
+                    
+            # Add Action
+            if action == 'add':
+                if len(player_list) == 10:
+                    print('Table full! Start the game!')
+                    break
+                else:
+                    name = str(input('Player Name (or \'Cancel\'): '))
+                    # Check if name already in use
+                    if name in name_list:
+                        print('Name already exists! Name must be unique!')
+                        continue
+                    elif name.lower() == 'cancel':
                         continue
                     else:
-                        name = str(input('Player Name (or \'Cancel\'): '))
-                        # Check if name already in use
-                        if name in name_list:
-                            print('Name already exists! Name must be unique!')
-                            continue
-                        elif name.lower() == 'cancel':
-                            continue
-                        else:
+                        while True:
                             try:
                                 stack = int(input('Buy in amount (stack): $'))
                             except ValueError:
@@ -453,3 +445,14 @@ if __name__ == '__main__':
                                 continue
                             else:
                                 player_list.append(Player(name, stack))
+                                break
+                                
+        # Play the hand
+        hand = Hand(*player_list)
+        player_list = hand.play()
+        # Check to play again
+        again = str(input('Play Again? [y/n] ')).strip().lower()
+        if again in ['yes', 'y']:
+            play_again = True
+        else:
+            play_again =  False
