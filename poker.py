@@ -84,8 +84,14 @@ class Hand:
         for player in players:
             self.player_list.append(player)
 
+    def _in_players(self):
+        return [player for player in self.player_list if player.is_in]
+
+    def _checked_players(self):
+        return [player.is_checked for player in self._in_players()]
+
     def __len__(self):
-        return len([player for player in self.player_list if player.is_in])
+        return len(self._in_players())
 
     def actions(self):
 
@@ -102,9 +108,14 @@ class Hand:
             player.street_bet = 0
 
         # While there at least two players and not all players are checked, allow players to make actions (bet/fold/call/check)
-        while self.__len__() > 1 and False in [player.is_checked for player in self.player_list if player.is_in]:
-            print('\nMax street bet: $' + str(self.high_street_bet))
-            for player in [player for player in self.player_list if player.is_in]:
+        checked_players = self._checked_players()
+        in_players = self._in_players()
+        while self.__len__() > 1 and False in checked_players:
+
+            for player in in_players:
+
+                if self.__len__() < 2:
+                    break
 
                 while True:
                     action = str(input('{} (Amount to Call: ${} | Pot Bet: ${} | Stack: ${}) Action: '.format(player.name, self.high_street_bet - player.street_bet, player.pot_bet, player.stack))).strip().lower()
@@ -116,37 +127,34 @@ class Hand:
                         if player.stack == 0:
                             print('You don\'t have enough chips!')
                             continue
-                        else:
-                            while True:
-                                try:
-                                    amount = int(input('Amount: '))
-                                except ValueError:
-                                    print('Must be a valid integer!')
-                                    continue
+                        while True:
+                            try:
+                                amount = int(input('Amount: '))
+                            except ValueError:
+                                print('Must be a valid integer!')
+                                continue
 
-                                if amount > player.stack:
-                                    print('You don\'t have enough')
-                                    continue
+                            if amount > player.stack:
+                                print('You don\'t have enough')
+                                continue
 
-                                elif amount < self.high_street_bet - player.street_bet:
-                                    print('You must raise more than current high street bet')
-                                    continue
+                            elif amount < self.high_street_bet - player.street_bet:
+                                print('You must raise more than current high street bet')
+                                continue
 
-                                elif amount == self.high_street_bet - player.street_bet:
-                                    print('Call instead of Raise next time!')
-                                    break
-
-                                else:
-                                    break
-
-                            player.raises(amount)
-                            self.total_pot += amount
-                            reset_checks(player, self.player_list)
-
-                            if player.street_bet > self.high_street_bet:
-                                self.high_street_bet = player.street_bet
+                            elif amount == self.high_street_bet - player.street_bet:
+                                print('Call instead of Raise next time!')
 
                             break
+
+                        player.raises(amount)
+                        self.total_pot += amount
+                        reset_checks(player, self.player_list)
+
+                        if player.street_bet > self.high_street_bet:
+                            self.high_street_bet = player.street_bet
+
+                        break
 
                     elif action == 'call':
                         if player.stack == 0:
@@ -155,25 +163,28 @@ class Hand:
                         elif player.street_bet == self.high_street_bet:
                             print('You are the bet leader, Check!')
                             continue
-                        else:
-                            amount = self.high_street_bet - player.street_bet
-                            if amount > player.stack:
-                                amount = player.stack
-                            player.raises(amount)
-                            self.total_pot += amount
-                            break
+
+                        amount = self.high_street_bet - player.street_bet
+                        if amount > player.stack:
+                            amount = player.stack
+                        player.raises(amount)
+                        self.total_pot += amount
+                        break
 
                     elif action == 'check':
                         if player.street_bet < self.high_street_bet:
                             print('You must Call or Raise!')
                             continue
-                        else:
-                            player.is_checked = True
-                            break
+
+                        player.is_checked = True
+                        break
 
                     elif action == 'fold':
                         player.fold()
                         break
+
+            checked_players = self._checked_players()
+            in_players = self._in_players()
 
     def deal_cards(self):
         for _ in range(2):
@@ -262,7 +273,7 @@ class Hand:
             return 1, [values[::-1]], 'High Card'
 
     def score_hands(self):
-        for player in [player for player in self.player_list if player.is_in]:
+        for player in self._in_players():
 
             best_hand_score, best_high_card, best_hand_string, best_hand = 0, [], None, []
 
@@ -295,7 +306,7 @@ class Hand:
             player.high_card = best_high_card
 
     def pick_winner(self):
-        players = [player for player in self.player_list if player.is_in]
+        players = self._in_players()
         print()
         if self.__len__() == 1:
             self.winner = players[0]
@@ -331,34 +342,41 @@ class Hand:
             else:
                 player.reset()
 
+    def leaderboard(self):
+        print('\nLeaderboard')
+        name_list = [player.name for player in self.player_list]
+        stack_list = [player.stack for player in self.player_list]
+        leader_list = sorted(zip(name_list, stack_list), key=lambda x: x[1], reverse=True)
+        for player in leader_list:
+            print('{}: ${}'.format(player[0], player[1]))
+
     def play(self):
         i = 0
         while self.__len__() > 1 and i < 8:
             if i == 0:
                 print('\nPlace Your Bets!')
                 self.deal_cards()
-            if i == 1:
+            elif i == 1:
                 self.actions()
-            if i == 2:
+            elif i == 2:
                 print('\nThe Flop!')
                 self.flop()
-            if i == 3:
+            elif i == 3:
                 self.actions()
-            if i == 4:
+            elif i == 4:
                 print('\nThe Turn!')
                 self.turn()
-            if i == 5:
+            elif i == 5:
                 self.actions()
-            if i == 6:
+            elif i == 6:
                 print('\nThe River!')
                 self.river()
-            if i == 7:
+            elif i == 7:
                 self.actions()
 
             if i % 2 == 0:
-                for player in self.player_list:
-                    if player.is_in:
-                        print(player.name + ': ' + str([c.card for c in player.hole_cards]))
+                for player in self._in_players():
+                    print(player.name + ': ' + str([c.card for c in player.hole_cards]))
 
                 if self.board:
                     print('Board: ' + str([c.card for c in self.board]))
@@ -372,11 +390,8 @@ class Hand:
         self.pick_winner()
         self.payout()
         self.reset_players()
+        self.leaderboard()
 
-        print('\nPlayers')
-        for player in self.player_list:
-            print('{}: ${}'.format(player.name, player.stack))
-        print()
         return self.player_list
 
 
@@ -395,11 +410,6 @@ if __name__ == '__main__':
             name_list = [player.name for player in player_list]
             stack_list = [player.stack for player in player_list]
 
-            print('\nLeaderboard')
-            leader_list = sorted(zip(name_list, stack_list), key=lambda x: x[1], reverse=True)
-            for player in leader_list:
-                print('{}: ${}'.format(player[0], player[1]))
-                
         while True:
             # Update name_list to ensure there are no duplicates
             if player_list:
@@ -416,10 +426,10 @@ if __name__ == '__main__':
             if action == 'start':
                 if len(player_list) < 2:
                     print('Not enough players to start! Add more players')
-                    action == 'add'
+                    action = 'add'
                 else:
                     break
-                    
+
             # Add Action
             if action == 'add':
                 if len(player_list) == 10:
@@ -446,12 +456,12 @@ if __name__ == '__main__':
                             else:
                                 player_list.append(Player(name, stack))
                                 break
-                                
+
         # Play the hand
         hand = Hand(*player_list)
         player_list = hand.play()
         # Check to play again
-        again = str(input('Play Again? [y/n] ')).strip().lower()
+        again = str(input('\nPlay Again? [y/n] ')).strip().lower()
         if again in ['yes', 'y']:
             play_again = True
         else:
