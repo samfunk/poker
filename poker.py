@@ -8,8 +8,7 @@ class Card(object):
         self.value = value
         self.suit = suit
         self.card = str(self.value) + " of " + str(self.suit)
-    def __eq__(self, other):
-        return self.rank == other.rank and self.value == other.value and self.suit == other.suit
+
 
 class Deck(object):
     def __init__(self):
@@ -43,6 +42,7 @@ class Deck(object):
         card = self.deck.pop()
         return card
 
+
 class Player(object):
     def __init__(self, name, stack):
         self.name = name
@@ -72,8 +72,8 @@ class Player(object):
         self.is_in = True
         self.is_checked = False
 
-class Hand:
 
+class Hand:
     def __init__(self, *players):
         self.total_pot = 0
         self.high_street_bet = 0
@@ -94,7 +94,6 @@ class Hand:
         return len(self._in_players())
 
     def actions(self):
-
         # If someone raises, make all other players unchecked
         def reset_checks(new_leader, remaining_players):
             for player in remaining_players:
@@ -118,50 +117,50 @@ class Hand:
                     break
 
                 while True:
-                    action = str(input('{} (Amount to Call: ${} | Pot Bet: ${} | Stack: ${}) Action: '.format(player.name, self.high_street_bet - player.street_bet, player.pot_bet, player.stack))).strip().lower()
+                    action = str(input('{} (Amount to Call: ${} | Current Hand Bet: ${} | Current Pot Size: ${} | Stack: ${}) Action: '.format(player.name, self.high_street_bet - player.street_bet, player.pot_bet, self.total_pot, player.stack))).strip().lower()
                     if action not in ['raise', 'call', 'check', 'fold']:
                         print('Must be a valid action!')
                         continue
 
                     elif action == 'raise':
-                        if player.stack == 0:
+                        if player.stack <= 0:
                             print('You don\'t have enough chips!')
                             continue
                         while True:
                             try:
-                                amount = int(input('Amount: '))
+                                raw_amount = input('Amount: ').lower().strip()
+                                amount = int(raw_amount)
                             except ValueError:
-                                print('Must be a valid integer!')
-                                continue
-
+                                if raw_amount in ['all in', 'allin']:
+                                    amount = player.stack
+                                    break
+                                else:
+                                    print('Must be a valid integer!')
+                                    continue
                             if amount > player.stack:
                                 print('You don\'t have enough')
                                 continue
-
                             elif amount < self.high_street_bet - player.street_bet:
                                 print('You must raise more than current high street bet')
                                 continue
-
                             elif amount == self.high_street_bet - player.street_bet:
-                                print('Call instead of Raise next time!')
-
+                                print('Call instead!')
+                                continue
                             break
 
                         player.raises(amount)
                         self.total_pot += amount
                         reset_checks(player, self.player_list)
-
                         if player.street_bet > self.high_street_bet:
                             self.high_street_bet = player.street_bet
-
                         break
 
                     elif action == 'call':
-                        if player.stack == 0:
-                            print('You don\'t have enough chips')
+                        if player.stack <= 0:
+                            print('You are all in! Check!')
                             continue
                         elif player.street_bet == self.high_street_bet:
-                            print('You are the bet leader, Check!')
+                            print('You are the street leader, Check or Raise!')
                             continue
 
                         amount = self.high_street_bet - player.street_bet
@@ -188,28 +187,24 @@ class Hand:
 
     def deal_cards(self):
         for _ in range(2):
-            for player in self.player_list:
+            for player in self._in_players():
                 player.hole_cards.append(self.deck.deal())
 
     def flop(self):
-        self.high_street_bet = 0
         self.deck.deal()
         for _ in range(3):
             self.board.append(self.deck.deal())
 
     def turn(self):
-        self.high_street_bet = 0
         self.deck.deal()
         self.board.append(self.deck.deal())
 
     def river(self):
-        self.high_street_bet = 0
         self.deck.deal()
         self.board.append(self.deck.deal())
 
     def evaluate_hand(self, hand):
-        values, suits = [list(x) for x in zip(*sorted(hand))]
-
+        values, suits = [list(h) for h in zip(*sorted(hand))]
         moder = lambda x: max(set(x), key=x.count)
 
         if [10,11,12,13,14] == values:
@@ -354,24 +349,19 @@ class Hand:
         i = 0
         while self.__len__() > 1 and i < 8:
             if i == 0:
+                self.leaderboard()
                 print('\nPlace Your Bets!')
                 self.deal_cards()
-            elif i == 1:
-                self.actions()
             elif i == 2:
                 print('\nThe Flop!')
                 self.flop()
-            elif i == 3:
-                self.actions()
             elif i == 4:
                 print('\nThe Turn!')
                 self.turn()
-            elif i == 5:
-                self.actions()
             elif i == 6:
                 print('\nThe River!')
                 self.river()
-            elif i == 7:
+            elif i in [1,3,5,7]:
                 self.actions()
 
             if i % 2 == 0:
@@ -380,8 +370,6 @@ class Hand:
 
                 if self.board:
                     print('Board: ' + str([c.card for c in self.board]))
-
-                print('Pot Size: $' + str(self.total_pot))
 
             i += 1
 
